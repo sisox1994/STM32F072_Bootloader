@@ -1,4 +1,4 @@
-# STM32F072_Bootloader
+# STM32F072_Application
 
 [TOC]
 
@@ -28,9 +28,9 @@ ___
 
 本範例Application 起始位置: 0x08006000 
 
-​		由ST官方文件可知 F07x系列的Flash最小只能以2Kbytes 為單位erase ,因此請將Application起始地址請以0x800為單位偏移
-
-​        本範例起始位置0x08006000 表示偏移12個Page燒錄Application         
+		由ST官方文件可知 F07x系列的Flash最小只能以2Kbytes 為單位erase ,因此請將Application起始地址請以0x800為單位偏移
+	
+	    本範例起始位置0x08006000 表示偏移12個Page燒錄Application         
 
 ####  Flash Memory Table
 
@@ -75,9 +75,9 @@ ___
 
 <img src="STM32F0系列Bootloader設計.assets/image-20220117152338870.png" alt="image-20220117152338870"  />
 
-​	備註: 程式必須要知道系統的中斷向量在什麼位置,才能正確的執行,所以才需要將他複製到SRAM裡面
-
-​              而我們的Firmware(ROM)開頭其實就是中斷向量(Vector Table),至於大小就會因為型號不同而有所不同
+	備註: 程式必須要知道系統的中斷向量在什麼位置,才能正確的執行,所以才需要將他複製到SRAM裡面
+	
+	          而我們的Firmware(ROM)開頭其實就是中斷向量(Vector Table),至於大小就會因為型號不同而有所不同
 
 #### 程式碼
 
@@ -86,7 +86,6 @@ ___
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define APPLICATION_ADDRESS  ((uint32_t)0x08006000) 
-#define VECTOR_SIZE 0xBC + 0x04
 /* USER CODE END PD */
 
 ```
@@ -94,11 +93,17 @@ ___
 ```c
 //main.c  (Application)
 /* USER CODE BEGIN PFP */
+
+#pragma location = 0x20000000
+__no_init __IO uint32_t VectorTable[48];
+
 void vector_table_and_remap(void)
 {
-    uint32_t addr = APPLICATION_ADDRESS; 
-    memcpy((void*)0x20000000, (void*)addr , VECTOR_SIZE);
-    __HAL_SYSCFG_REMAPMEMORY_SRAM(); 
+      for( uint32_t i = 0; i < 48; i++){
+          VectorTable[i] = *(__IO uint32_t*)(APPLICATION_ADDRESS + (i<<2));
+      }      
+      __HAL_RCC_SYSCFG_CLK_ENABLE();      
+      __HAL_SYSCFG_REMAPMEMORY_SRAM();     
 }
 /* USER CODE END PFP */
 ```
@@ -247,4 +252,3 @@ uint16_t  uiREAD_SHORT = *(__IO uint16_t*)(FLASH_ADDRESS);
 uint8_t   uiREAD_BYTE  = *(__IO uint8_t*)(FLASH_ADDRESS);
 
 ```
-
